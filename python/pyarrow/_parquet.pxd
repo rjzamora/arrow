@@ -265,6 +265,7 @@ cdef extern from "parquet/api/writer.h" namespace "parquet" nogil:
             Builder* disable_dictionary()
             Builder* enable_dictionary()
             Builder* enable_dictionary(const c_string& path)
+            Builder* file_path(const c_string& path)
             shared_ptr[WriterProperties] build()
 
 

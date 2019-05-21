@@ -962,6 +962,7 @@ cdef class ParquetWriter:
         object allow_truncated_timestamps
         object compression
         object version
+        object file_path
         int row_group_size
 
     def __cinit__(self, where, Schema schema, use_dictionary=None,
@@ -970,7 +971,7 @@ cdef class ParquetWriter:
                   use_deprecated_int96_timestamps=False,
                   coerce_timestamps=None,
                   allow_truncated_timestamps=False,
-                  file_path=False):
+                  file_path=None):
         cdef:
             shared_ptr[WriterProperties] properties
             c_string c_where

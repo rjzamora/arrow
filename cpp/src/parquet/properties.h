@@ -91,7 +91,7 @@ static constexpr ParquetVersion::type DEFAULT_WRITER_VERSION =
     ParquetVersion::PARQUET_1_0;
 static const char DEFAULT_CREATED_BY[] = CREATED_BY_VERSION;
 static constexpr Compression::type DEFAULT_COMPRESSION_TYPE = Compression::UNCOMPRESSED;
-static constexpr std::string DEFAULT_FILE_PATH = "";
+static constexpr char DEFAULT_FILE_PATH[] = "";
 
 class PARQUET_EXPORT ColumnProperties {
  public:
