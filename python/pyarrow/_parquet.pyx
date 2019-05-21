@@ -969,7 +969,8 @@ cdef class ParquetWriter:
                   MemoryPool memory_pool=None,
                   use_deprecated_int96_timestamps=False,
                   coerce_timestamps=None,
-                  allow_truncated_timestamps=False):
+                  allow_truncated_timestamps=False,
+                  file_path=False):
         cdef:
             shared_ptr[WriterProperties] properties
             c_string c_where
@@ -993,11 +994,13 @@ cdef class ParquetWriter:
         self.use_deprecated_int96_timestamps = use_deprecated_int96_timestamps
         self.coerce_timestamps = coerce_timestamps
         self.allow_truncated_timestamps = allow_truncated_timestamps
+        self.file_path = file_path
 
         cdef WriterProperties.Builder properties_builder
         self._set_version(&properties_builder)
         self._set_compression_props(&properties_builder)
         self._set_dictionary_props(&properties_builder)
+        self._set_file_path(&properties_builder)
         properties = properties_builder.build()
 
         cdef ArrowWriterProperties.Builder arrow_properties_builder
@@ -1065,6 +1068,15 @@ cdef class ParquetWriter:
             props.disable_dictionary()
             for column in self.use_dictionary:
                 props.enable_dictionary(column)
+
+    cdef void _set_file_path(self, WriterProperties.Builder* props):
+        cdef c_string c_file_path
+        if self.file_path is not None:
+            if isinstance(self.file_path, str):
+                c_file_path = self.file_path.encode()
+                props.file_path(c_file_path)
+            else:
+                raise TypeError('Expecting a string for the file path')
 
     def close(self):
         with nogil:
