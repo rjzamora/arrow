@@ -77,7 +77,9 @@ inline void ThrowRowsMisMatchError(int col, int64_t prev, int64_t curr) {
 class RowGroupSerializer : public RowGroupWriter::Contents {
  public:
   RowGroupSerializer(OutputStream* sink, RowGroupMetaDataBuilder* metadata,
-                     const WriterProperties* properties, bool buffered_row_group = false)
+                     const WriterProperties* properties,
+                     const bool& to_disk,
+                     bool buffered_row_group = false)
       : sink_(sink),
         metadata_(metadata),
         properties_(properties),
@@ -85,7 +87,9 @@ class RowGroupSerializer : public RowGroupWriter::Contents {
         closed_(false),
         current_column_index_(0),
         num_rows_(0),
-        buffered_row_group_(buffered_row_group) {
+        buffered_row_group_(buffered_row_group),
+        to_disk_(to_disk) {
+    std::cout<<" to_disk value is: "<<to_disk_<<std::endl; //RJZ
     if (buffered_row_group) {
       InitColumns();
     } else {
@@ -191,6 +195,7 @@ class RowGroupSerializer : public RowGroupWriter::Contents {
   int current_column_index_;
   mutable int64_t num_rows_;
   bool buffered_row_group_;
+  bool to_disk_;
 
   void CheckRowsWritten() const {
     // verify when only one column is written at a time
@@ -261,7 +266,8 @@ class FileSerializer : public ParquetFileWriter::Contents {
 
       // Write magic bytes and metadata
       file_metadata_ = metadata_->Finish();
-      WriteFileMetaData(*file_metadata_, sink_.get());
+      if (to_disk_)
+        WriteFileMetaData(*file_metadata_, sink_.get());
 
       sink_->Close();
     }
@@ -284,7 +290,7 @@ class FileSerializer : public ParquetFileWriter::Contents {
     num_row_groups_++;
     auto rg_metadata = metadata_->AppendRowGroup();
     std::unique_ptr<RowGroupWriter::Contents> contents(new RowGroupSerializer(
-        sink_.get(), rg_metadata, properties_.get(), buffered_row_group));
+        sink_.get(), rg_metadata, properties_.get(), to_disk_, buffered_row_group));
     row_group_writer_.reset(new RowGroupWriter(std::move(contents)));
     return row_group_writer_.get();
   }
@@ -314,8 +320,8 @@ class FileSerializer : public ParquetFileWriter::Contents {
         num_rows_(0),
         metadata_(FileMetaDataBuilder::Make(&schema_, properties, key_value_metadata)),
         to_disk_(to_disk) {
-    std::cout<<" to_disk value is: "<<to_disk_<<std::endl; //RJZ
-    StartFile();
+    if (to_disk_)
+      StartFile();
   }
 
   std::shared_ptr<OutputStream> sink_;

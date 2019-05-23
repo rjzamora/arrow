@@ -319,8 +319,8 @@ Status GetLeafType(const ::arrow::DataType& type, ::arrow::Type::type* leaf_type
 class ArrowColumnWriter {
  public:
   ArrowColumnWriter(ColumnWriterContext* ctx, ColumnWriter* column_writer,
-                    const std::shared_ptr<Field>& field)
-      : ctx_(ctx), writer_(column_writer), field_(field) {}
+                    const std::shared_ptr<Field>& field, const bool& to_disk)
+      : ctx_(ctx), writer_(column_writer), field_(field), to_disk_(to_disk) {}
 
   Status Write(const Array& data);
 
@@ -431,6 +431,7 @@ class ArrowColumnWriter {
   ColumnWriterContext* ctx_;
   ColumnWriter* writer_;
   std::shared_ptr<Field> field_;
+  bool to_disk_;
 };
 
 template <typename ParquetType, typename ArrowType>
@@ -901,6 +902,10 @@ Status ArrowColumnWriter::Write(const Array& data) {
     return Status::OK();
   }
 
+  if (!to_disk_) {
+    return Status::OK();
+  }
+
   ::arrow::Type::type values_type;
   RETURN_NOT_OK(GetLeafType(*data.type(), &values_type));
 
@@ -977,12 +982,14 @@ Status ArrowColumnWriter::Write(const Array& data) {
 class FileWriter::Impl {
  public:
   Impl(MemoryPool* pool, std::unique_ptr<ParquetFileWriter> writer,
-       const std::shared_ptr<ArrowWriterProperties>& arrow_properties)
+       const std::shared_ptr<ArrowWriterProperties>& arrow_properties,
+      const bool& to_disk)
       : writer_(std::move(writer)),
         row_group_writer_(nullptr),
         column_write_context_(pool, arrow_properties.get()),
         arrow_properties_(arrow_properties),
-        closed_(false) {}
+        closed_(false),
+        to_disk_(to_disk) {}
 
   Status NewRowGroup(int64_t chunk_size) {
     if (row_group_writer_ != nullptr) {
@@ -1046,7 +1053,7 @@ class FileWriter::Impl {
                                     writer_->key_value_metadata(), &arrow_schema));
 
     ArrowColumnWriter arrow_writer(&column_write_context_, column_writer,
-                                   arrow_schema->field(0));
+                                   arrow_schema->field(0), to_disk_);
     RETURN_NOT_OK(arrow_writer.Write(*data, offset, size));
     return arrow_writer.Close();
   }
@@ -1067,6 +1074,7 @@ class FileWriter::Impl {
   ColumnWriterContext column_write_context_;
   std::shared_ptr<ArrowWriterProperties> arrow_properties_;
   bool closed_;
+  bool to_disk_;
 };
 
 Status FileWriter::NewRowGroup(int64_t chunk_size) {
@@ -1100,7 +1108,7 @@ FileWriter::FileWriter(MemoryPool* pool, std::unique_ptr<ParquetFileWriter> writ
                        const std::shared_ptr<::arrow::Schema>& schema,
                        const std::shared_ptr<ArrowWriterProperties>& arrow_properties,
                        const bool& to_disk)
-    : impl_(new FileWriter::Impl(pool, std::move(writer), arrow_properties)),
+    : impl_(new FileWriter::Impl(pool, std::move(writer), arrow_properties, to_disk)),
       schema_(schema),
       to_disk_(to_disk) {}
 
