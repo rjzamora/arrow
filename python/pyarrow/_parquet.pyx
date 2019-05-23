@@ -971,7 +971,8 @@ cdef class ParquetWriter:
                   use_deprecated_int96_timestamps=False,
                   coerce_timestamps=None,
                   allow_truncated_timestamps=False,
-                  file_path=None):
+                  file_path=None,
+                  const c_bool to_disk=True):
         cdef:
             shared_ptr[WriterProperties] properties
             c_string c_where
@@ -1015,7 +1016,7 @@ cdef class ParquetWriter:
             check_status(
                 FileWriter.Open(deref(schema.schema), pool,
                                 self.sink, properties, arrow_properties,
-                                &self.writer))
+                                &self.writer, to_disk))
 
     cdef void _set_int96_support(self, ArrowWriterProperties.Builder* props):
         if self.use_deprecated_int96_timestamps:

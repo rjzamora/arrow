@@ -139,7 +139,8 @@ class PARQUET_EXPORT FileWriter {
   FileWriter(::arrow::MemoryPool* pool, std::unique_ptr<ParquetFileWriter> writer,
              const std::shared_ptr<::arrow::Schema>& schema,
              const std::shared_ptr<ArrowWriterProperties>& arrow_properties =
-                 default_arrow_writer_properties());
+                 default_arrow_writer_properties(),
+             const bool& to_disk = true);
 
   static ::arrow::Status Open(const ::arrow::Schema& schema, ::arrow::MemoryPool* pool,
                               const std::shared_ptr<OutputStream>& sink,
@@ -153,6 +154,14 @@ class PARQUET_EXPORT FileWriter {
       const std::shared_ptr<ArrowWriterProperties>& arrow_properties,
       std::unique_ptr<FileWriter>* writer);
 
+  static ::arrow::Status Open(
+      const ::arrow::Schema& schema, ::arrow::MemoryPool* pool,
+      const std::shared_ptr<OutputStream>& sink,
+      const std::shared_ptr<WriterProperties>& properties,
+      const std::shared_ptr<ArrowWriterProperties>& arrow_properties,
+      std::unique_ptr<FileWriter>* writer,
+      const bool& to_disk);
+
   static ::arrow::Status Open(const ::arrow::Schema& schema, ::arrow::MemoryPool* pool,
                               const std::shared_ptr<::arrow::io::OutputStream>& sink,
                               const std::shared_ptr<WriterProperties>& properties,
@@ -165,8 +174,18 @@ class PARQUET_EXPORT FileWriter {
       const std::shared_ptr<ArrowWriterProperties>& arrow_properties,
       std::unique_ptr<FileWriter>* writer);
 
+  static ::arrow::Status Open(
+      const ::arrow::Schema& schema, ::arrow::MemoryPool* pool,
+      const std::shared_ptr<::arrow::io::OutputStream>& sink,
+      const std::shared_ptr<WriterProperties>& properties,
+      const std::shared_ptr<ArrowWriterProperties>& arrow_properties,
+      std::unique_ptr<FileWriter>* writer,
+      const bool& to_disk);
+
   /// \brief Write a Table to Parquet.
   ::arrow::Status WriteTable(const ::arrow::Table& table, int64_t chunk_size);
+
+  ::arrow::Status TableMetadata(const ::arrow::Table& table, int64_t chunk_size);
 
   ::arrow::Status NewRowGroup(int64_t chunk_size);
   ::arrow::Status WriteColumnChunk(const ::arrow::Array& data);
@@ -187,6 +206,7 @@ class PARQUET_EXPORT FileWriter {
   class PARQUET_NO_EXPORT Impl;
   std::unique_ptr<Impl> impl_;
   std::shared_ptr<::arrow::Schema> schema_;
+  bool to_disk_;
 };
 
 /// \brief Write Parquet file metadata only to indicated OutputStream
@@ -213,6 +233,13 @@ PARQUET_EXPORT
 ::arrow::Status PARQUET_EXPORT WriteTable(
     const ::arrow::Table& table, ::arrow::MemoryPool* pool,
     const std::shared_ptr<::arrow::io::OutputStream>& sink, int64_t chunk_size,
+    const std::shared_ptr<WriterProperties>& properties = default_writer_properties(),
+    const std::shared_ptr<ArrowWriterProperties>& arrow_properties =
+        default_arrow_writer_properties());
+
+::arrow::Status PARQUET_EXPORT TableMetadata(
+    const ::arrow::Table& table, ::arrow::MemoryPool* pool,
+    const std::shared_ptr<OutputStream>& sink, int64_t chunk_size,
     const std::shared_ptr<WriterProperties>& properties = default_writer_properties(),
     const std::shared_ptr<ArrowWriterProperties>& arrow_properties =
         default_arrow_writer_properties());

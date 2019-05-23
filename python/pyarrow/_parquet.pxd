@@ -318,7 +318,8 @@ cdef extern from "parquet/arrow/writer.h" namespace "parquet::arrow" nogil:
                      const shared_ptr[OutputStream]& sink,
                      const shared_ptr[WriterProperties]& properties,
                      const shared_ptr[ArrowWriterProperties]& arrow_properties,
-                     unique_ptr[FileWriter]* writer)
+                     unique_ptr[FileWriter]* writer,
+                     const c_bool& to_disk)
 
         CStatus WriteTable(const CTable& table, int64_t chunk_size)
         CStatus NewRowGroup(int64_t chunk_size)

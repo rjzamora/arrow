@@ -19,6 +19,7 @@
 
 #include <utility>
 #include <vector>
+#include <iostream> //RJZ
 
 #include "parquet/column_writer.h"
 #include "parquet/schema.h"
@@ -239,9 +240,10 @@ class FileSerializer : public ParquetFileWriter::Contents {
   static std::unique_ptr<ParquetFileWriter::Contents> Open(
       const std::shared_ptr<OutputStream>& sink, const std::shared_ptr<GroupNode>& schema,
       const std::shared_ptr<WriterProperties>& properties,
-      const std::shared_ptr<const KeyValueMetadata>& key_value_metadata) {
+      const std::shared_ptr<const KeyValueMetadata>& key_value_metadata,
+      const bool& to_disk) {
     std::unique_ptr<ParquetFileWriter::Contents> result(
-        new FileSerializer(sink, schema, properties, key_value_metadata));
+        new FileSerializer(sink, schema, properties, key_value_metadata, to_disk));
 
     return result;
   }
@@ -302,14 +304,17 @@ class FileSerializer : public ParquetFileWriter::Contents {
   FileSerializer(const std::shared_ptr<OutputStream>& sink,
                  const std::shared_ptr<GroupNode>& schema,
                  const std::shared_ptr<WriterProperties>& properties,
-                 const std::shared_ptr<const KeyValueMetadata>& key_value_metadata)
+                 const std::shared_ptr<const KeyValueMetadata>& key_value_metadata,
+                 const bool& to_disk)
       : ParquetFileWriter::Contents(schema, key_value_metadata),
         sink_(sink),
         is_open_(true),
         properties_(properties),
         num_row_groups_(0),
         num_rows_(0),
-        metadata_(FileMetaDataBuilder::Make(&schema_, properties, key_value_metadata)) {
+        metadata_(FileMetaDataBuilder::Make(&schema_, properties, key_value_metadata)),
+        to_disk_(to_disk) {
+    std::cout<<" to_disk value is: "<<to_disk_<<std::endl; //RJZ
     StartFile();
   }
 
@@ -321,6 +326,7 @@ class FileSerializer : public ParquetFileWriter::Contents {
   std::unique_ptr<FileMetaDataBuilder> metadata_;
   // Only one of the row group writers is active at a time
   std::unique_ptr<RowGroupWriter> row_group_writer_;
+  bool to_disk_;
 
   void StartFile() {
     // Parquet files always start with PAR1
@@ -353,8 +359,10 @@ std::unique_ptr<ParquetFileWriter> ParquetFileWriter::Open(
     const std::shared_ptr<OutputStream>& sink,
     const std::shared_ptr<schema::GroupNode>& schema,
     const std::shared_ptr<WriterProperties>& properties,
-    const std::shared_ptr<const KeyValueMetadata>& key_value_metadata) {
-  auto contents = FileSerializer::Open(sink, schema, properties, key_value_metadata);
+    const std::shared_ptr<const KeyValueMetadata>& key_value_metadata,
+    const bool& to_disk) {
+  auto contents = FileSerializer::Open(sink, schema, properties,
+                                       key_value_metadata, to_disk);
   std::unique_ptr<ParquetFileWriter> result(new ParquetFileWriter());
   result->Open(std::move(contents));
   return result;
